@@ -1,9 +1,9 @@
 {
-  "name": "oliverbenns",
+  "name": "oliverhees",
   "owner": { "name": "Oliver" },
   "metadata": {
     "description": "Graphiti-powered temporal memory for Claude Code",
-    "homepage": "https://github.com/oliverbenns/graphiti-mem"
+    "homepage": "https://github.com/oliverhees/graphiti-mem"
   },
   "plugins": [
     {

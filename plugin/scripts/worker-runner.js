@@ -7,7 +7,7 @@ const http = require('http');
 const crypto = require('crypto');
 
 // --- Configuration ---
-const PLUGIN_ROOT = process.env.CLAUDE_PLUGIN_ROOT || path.join(process.env.HOME, '.claude/plugins/marketplaces/oliverbenns/plugin');
+const PLUGIN_ROOT = process.env.CLAUDE_PLUGIN_ROOT || path.join(process.env.HOME, '.claude/plugins/marketplaces/oliverhees/plugin');
 const WORKER_PORT = 37778;
 const WORKER_URL = `http://localhost:${WORKER_PORT}`;
 const DATA_DIR = path.join(process.env.HOME, '.graphiti-mem');

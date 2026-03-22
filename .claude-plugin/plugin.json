@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Temporal knowledge graph memory for Claude Code — entities, relationships, and time-aware context across sessions powered by Graphiti + Kuzu",
   "author": { "name": "Oliver" },
-  "repository": "https://github.com/oliverbenns/graphiti-mem",
+  "repository": "https://github.com/oliverhees/graphiti-mem",
   "license": "MIT",
   "keywords": ["memory", "graphiti", "knowledge-graph", "context", "temporal", "hooks", "mcp", "kuzu"]
 }

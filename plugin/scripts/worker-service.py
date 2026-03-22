@@ -23,7 +23,7 @@ from graphiti_core import Graphiti
 from graphiti_core.driver.kuzu_driver import KuzuDriver
 from graphiti_core.llm_client.anthropic_client import AnthropicClient
 from graphiti_core.llm_client import LLMConfig
-from graphiti_core.embedder.openai import OpenAIEmbedder, OpenAIEmbedderConfig
+from graphiti_core.embedder.voyage import VoyageAIEmbedder, VoyageAIEmbedderConfig
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -74,20 +74,22 @@ def _build_llm_client() -> AnthropicClient:
     return AnthropicClient(config=LLMConfig(api_key=api_key))
 
 
-def _build_embedder() -> OpenAIEmbedder:
+def _build_embedder() -> VoyageAIEmbedder:
     """Create the embedder for semantic search in Graphiti.
 
-    Uses OpenAI embeddings by default (text-embedding-3-small).
-    Set OPENAI_API_KEY in environment. Alternatively swap to a different
-    embedder from graphiti_core.embedder if you prefer.
+    Uses Voyage AI embeddings (voyage-3) — Anthropic's recommended embedding
+    partner for Claude-based applications.
+
+    Set VOYAGE_API_KEY in environment.
+    Free tier: 50M tokens/month. Get key at https://dash.voyageai.com/
     """
-    api_key = os.environ.get("OPENAI_API_KEY")
+    api_key = os.environ.get("VOYAGE_API_KEY")
     if not api_key:
         raise RuntimeError(
-            "OPENAI_API_KEY environment variable is required for embeddings. "
-            "Get a key at https://platform.openai.com/api-keys"
+            "VOYAGE_API_KEY environment variable is required for embeddings. "
+            "Get a free key at https://dash.voyageai.com/ (50M tokens/month free)"
         )
-    return OpenAIEmbedder(config=OpenAIEmbedderConfig(api_key=api_key))
+    return VoyageAIEmbedder(config=VoyageAIEmbedderConfig(api_key=api_key))
 
 
 async def _get_graphiti(project_id: str) -> Graphiti:

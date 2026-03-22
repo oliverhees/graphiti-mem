@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverbenns/plugin\"; node \"$_R/scripts/smart-install.js\"",
+            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverhees/plugin\"; node \"$_R/scripts/smart-install.js\"",
             "timeout": 300
           }
         ]
@@ -19,17 +19,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverbenns/plugin\"; node \"$_R/scripts/smart-install.js\"",
+            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverhees/plugin\"; node \"$_R/scripts/smart-install.js\"",
             "timeout": 300
           },
           {
             "type": "command",
-            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverbenns/plugin\"; node \"$_R/scripts/worker-runner.js\" start",
+            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverhees/plugin\"; node \"$_R/scripts/worker-runner.js\" start",
             "timeout": 60
           },
           {
             "type": "command",
-            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverbenns/plugin\"; node \"$_R/scripts/worker-runner.js\" hook context",
+            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverhees/plugin\"; node \"$_R/scripts/worker-runner.js\" hook context",
             "timeout": 60
           }
         ]
@@ -39,22 +39,22 @@
         "hooks": [
           {
             "type": "command",
-            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverbenns/plugin\"; node \"$_R/scripts/smart-install.js\"",
+            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverhees/plugin\"; node \"$_R/scripts/smart-install.js\"",
             "timeout": 300
           },
           {
             "type": "command",
-            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverbenns/plugin\"; node \"$_R/scripts/worker-runner.js\" start",
+            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverhees/plugin\"; node \"$_R/scripts/worker-runner.js\" start",
             "timeout": 60
           },
           {
             "type": "command",
-            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverbenns/plugin\"; node \"$_R/scripts/worker-runner.js\" hook compact",
+            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverhees/plugin\"; node \"$_R/scripts/worker-runner.js\" hook compact",
             "timeout": 120
           },
           {
             "type": "command",
-            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverbenns/plugin\"; node \"$_R/scripts/worker-runner.js\" hook context",
+            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverhees/plugin\"; node \"$_R/scripts/worker-runner.js\" hook context",
             "timeout": 60
           }
         ]
@@ -65,7 +65,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverbenns/plugin\"; node \"$_R/scripts/worker-runner.js\" hook session-init",
+            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverhees/plugin\"; node \"$_R/scripts/worker-runner.js\" hook session-init",
             "timeout": 30
           }
         ]
@@ -77,7 +77,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverbenns/plugin\"; node \"$_R/scripts/worker-runner.js\" hook observation",
+            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverhees/plugin\"; node \"$_R/scripts/worker-runner.js\" hook observation",
             "timeout": 120
           }
         ]
@@ -88,7 +88,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverbenns/plugin\"; node \"$_R/scripts/worker-runner.js\" hook learn",
+            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverhees/plugin\"; node \"$_R/scripts/worker-runner.js\" hook learn",
             "timeout": 120
           }
         ]
@@ -99,7 +99,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverbenns/plugin\"; node \"$_R/scripts/worker-runner.js\" hook session-complete",
+            "command": "_R=\"${CLAUDE_PLUGIN_ROOT}\"; [ -z \"$_R\" ] && _R=\"$HOME/.claude/plugins/marketplaces/oliverhees/plugin\"; node \"$_R/scripts/worker-runner.js\" hook session-complete",
             "timeout": 30
           }
         ]

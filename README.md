@@ -43,14 +43,14 @@ Every interaction makes the graph richer. Graphiti's LLM pipeline automatically 
 
 - Node.js >= 18
 - [uv](https://docs.astral.sh/uv/) (auto-installed)
-- `ANTHROPIC_API_KEY` — for NLP entity/relationship extraction
-- `OPENAI_API_KEY` — for semantic embeddings (text-embedding-3-small)
+- `ANTHROPIC_API_KEY` — for NLP entity/relationship extraction (Claude Haiku)
+- `VOYAGE_API_KEY` — for semantic embeddings ([Voyage AI](https://dash.voyageai.com/) — Anthropic's recommended embedding partner, **50M tokens/month free**)
 
 ## Installation
 
 **Via Claude Code Plugin Marketplace:**
 ```
-/plugin marketplace add oliverbenns/graphiti-mem
+/plugin marketplace add oliverhees/graphiti-mem
 /plugin install graphiti-mem
 ```
 

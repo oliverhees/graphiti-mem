@@ -3,7 +3,7 @@
 # Usage: curl -sSf https://graphiti-mem.dev/install.sh | bash
 set -euo pipefail
 
-REPO="https://github.com/oliverbenns/graphiti-mem"
+REPO="https://github.com/oliverhees/graphiti-mem"
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 
