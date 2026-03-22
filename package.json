@@ -1,0 +1,9 @@
+{
+  "name": "graphiti-mem",
+  "version": "1.0.0",
+  "description": "Temporal knowledge graph memory for Claude Code",
+  "private": true,
+  "scripts": {
+    "install:plugin": "node installer/dist/index.js"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "oliverbenns",
+  "owner": { "name": "Oliver" },
+  "metadata": {
+    "description": "Graphiti-powered temporal memory for Claude Code",
+    "homepage": "https://github.com/oliverbenns/graphiti-mem"
+  },
+  "plugins": [
+    {
+      "name": "graphiti-mem",
+      "version": "1.0.0",
+      "source": "./plugin",
+      "description": "Temporal knowledge graph memory — time-aware context persistence powered by Graphiti + Kuzu"
+    }
+  ]
+}
