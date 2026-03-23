@@ -1,0 +1,9 @@
+{
+  "name": "graphiti-mem-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "graphiti-mem worker runner and MCP server",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}

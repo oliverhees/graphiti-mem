@@ -92,6 +92,24 @@ async function isWorkerRunning() {
   }
 }
 
+// --- Load ~/.graphiti-mem/.env (persistent API key storage) ---
+function loadDotEnv() {
+  const envFile = path.join(DATA_DIR, '.env');
+  if (!fs.existsSync(envFile)) return {};
+  const lines = fs.readFileSync(envFile, 'utf-8').split('\n');
+  const env = {};
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq < 0) continue;
+    const key = trimmed.slice(0, eq).trim();
+    const val = trimmed.slice(eq + 1).trim().replace(/^["']|["']$/g, '');
+    env[key] = val;
+  }
+  return env;
+}
+
 // --- Worker lifecycle ---
 async function startWorker() {
   if (await isWorkerRunning()) {
@@ -114,6 +132,9 @@ async function startWorker() {
     return false;
   }
 
+  // Load persistent env vars (VOYAGE_API_KEY etc.) from ~/.graphiti-mem/.env
+  const dotEnv = loadDotEnv();
+
   // Spawn the worker process
   const logStream = fs.openSync(LOG_FILE, 'a');
   const child = spawn(VENV_PYTHON, [scriptPath], {
@@ -121,6 +142,7 @@ async function startWorker() {
     stdio: ['ignore', logStream, logStream],
     env: {
       ...process.env,
+      ...dotEnv,          // persistent keys take precedence over shell env
       GRAPHITI_MEM_PORT: String(WORKER_PORT),
       GRAPHITI_MEM_DATA_DIR: DATA_DIR,
     },

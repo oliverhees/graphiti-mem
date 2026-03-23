@@ -164,4 +164,77 @@ function main() {
   log("dependencies installed successfully");
 }
 
+// ---------------------------------------------------------------------------
+// MCP Server registration in ~/.claude/settings.json
+// ---------------------------------------------------------------------------
+
+function registerMcpServer() {
+  const SCRIPTS_DIR = path.join(PLUGIN_ROOT, "scripts");
+  const MCP_SCRIPT = path.join(SCRIPTS_DIR, "mcp-server.js");
+  const SETTINGS_PATH = path.join(os.homedir(), ".claude", "settings.json");
+
+  if (!fs.existsSync(MCP_SCRIPT)) {
+    log("mcp-server.js not found — skipping MCP registration");
+    return;
+  }
+
+  // Read or create settings.json
+  let settings = {};
+  if (fs.existsSync(SETTINGS_PATH)) {
+    try {
+      settings = JSON.parse(fs.readFileSync(SETTINGS_PATH, "utf-8"));
+    } catch {
+      settings = {};
+    }
+  }
+
+  if (!settings.mcpServers) settings.mcpServers = {};
+
+  // Check if already registered with the same path
+  const existing = settings.mcpServers["graphiti-mem"];
+  if (existing && existing.args && existing.args[0] === MCP_SCRIPT) {
+    log("MCP server already registered");
+    return;
+  }
+
+  settings.mcpServers["graphiti-mem"] = {
+    command: "node",
+    args: [MCP_SCRIPT],
+    env: {},
+  };
+
+  fs.mkdirSync(path.dirname(SETTINGS_PATH), { recursive: true });
+  fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2), "utf-8");
+  log(`MCP server registered in ${SETTINGS_PATH}`);
+}
+
+// ---------------------------------------------------------------------------
+// Node dependency installation (for mcp-server.js)
+// ---------------------------------------------------------------------------
+
+function installNodeDeps() {
+  const SCRIPTS_DIR = path.join(PLUGIN_ROOT, "scripts");
+  const PACKAGE_JSON = path.join(SCRIPTS_DIR, "package.json");
+  const NODE_MODULES = path.join(SCRIPTS_DIR, "node_modules", "@modelcontextprotocol", "sdk");
+
+  if (!fs.existsSync(PACKAGE_JSON)) return;
+  if (fs.existsSync(NODE_MODULES)) {
+    log("Node dependencies already installed");
+    return;
+  }
+
+  log("Installing Node dependencies (MCP SDK)...");
+  try {
+    execFileSync("npm", ["install", "--prefix", SCRIPTS_DIR, "--omit=dev"], {
+      stdio: "pipe",
+      timeout: 60_000,
+    });
+    log("Node dependencies installed");
+  } catch (err) {
+    log(`WARNING: npm install failed: ${err.message} — MCP tools may not be available`);
+  }
+}
+
 main();
+installNodeDeps();
+registerMcpServer();

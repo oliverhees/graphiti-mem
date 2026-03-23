@@ -320,29 +320,119 @@ async def search(req: SearchRequest):
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+class EntityListRequest(BaseModel):
+    project_id: str
+    limit: int = Field(default=20, ge=1, le=100)
+    type: str | None = None
+    name: str | None = None
+
+
+class RelationshipListRequest(BaseModel):
+    project_id: str
+    limit: int = Field(default=20, ge=1, le=100)
+    source: str | None = None
+    target: str | None = None
+
+
+class TimelineRequest(BaseModel):
+    project_id: str
+    limit: int = Field(default=15, ge=1, le=100)
+    entity: str | None = None
+
+
+async def _list_entities_impl(project_id: str) -> dict[str, Any]:
+    """Shared entity listing logic used by both GET and POST endpoints."""
+    graphiti = await _get_graphiti(project_id)
+    entities: list[dict[str, Any]] = []
+    try:
+        # Use the Kuzu driver directly to query entity nodes
+        records, _, _ = await graphiti.driver.execute_query(
+            "MATCH (n:Entity) RETURN n.name AS name, n.summary AS summary, n.created_at AS created_at LIMIT 50"
+        )
+        for rec in records:
+            entities.append({
+                "name": rec.get("name", ""),
+                "summary": rec.get("summary", ""),
+                "created_at": _format_dt(rec.get("created_at")),
+            })
+    except Exception as exc:
+        logger.warning("Could not retrieve entities: %s", exc)
+    return {"entities": entities}
+
+
+async def _list_relationships_impl(project_id: str) -> dict[str, Any]:
+    """Shared relationship listing logic used by both GET and POST endpoints."""
+    graphiti = await _get_graphiti(project_id)
+    relationships: list[dict[str, Any]] = []
+    try:
+        # Direct Kuzu query — EntityEdge is the relationship table in Graphiti's Kuzu schema
+        records, _, _ = await graphiti.driver.execute_query(
+            "MATCH (n:Entity)-[r:EntityEdge]->(m:Entity) "
+            "RETURN n.name AS source, m.name AS target, r.fact AS fact, r.valid_at AS valid_at "
+            "LIMIT 50"
+        )
+        for rec in records:
+            relationships.append({
+                "source": rec.get("source", ""),
+                "target": rec.get("target", ""),
+                "fact": rec.get("fact", ""),
+                "valid_at": _format_dt(rec.get("valid_at")),
+            })
+    except Exception as exc:
+        logger.warning("Could not retrieve relationships: %s", exc)
+    return {"relationships": relationships}
+
+
+async def _list_timeline_impl(project_id: str, limit: int = 20) -> dict[str, Any]:
+    """Shared timeline logic used by both GET and POST endpoints."""
+    graphiti = await _get_graphiti(project_id)
+    episodes: list[dict[str, Any]] = []
+    try:
+        # retrieve_episodes() is the correct Graphiti API (last_n most recent episodes)
+        result = await graphiti.retrieve_episodes(last_n=limit)
+        for ep in result:
+            episodes.append({
+                "name": getattr(ep, "name", ""),
+                "source_description": getattr(ep, "source_description", ""),
+                "created_at": _format_dt(getattr(ep, "created_at", None)),
+                "entities": [],  # EpisodicNode doesn't carry pre-resolved entities
+            })
+    except Exception as exc:
+        logger.warning("Could not retrieve timeline: %s", exc)
+    return {"episodes": episodes}
+
+
+# POST variants (used by worker-runner.js hook context and mcp-server.js)
+@app.post("/entities")
+async def list_entities_post(req: EntityListRequest):
+    try:
+        return await _list_entities_impl(req.project_id)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/relationships")
+async def list_relationships_post(req: RelationshipListRequest):
+    try:
+        return await _list_relationships_impl(req.project_id)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/timeline")
+async def timeline_post(req: TimelineRequest):
+    try:
+        return await _list_timeline_impl(req.project_id, req.limit)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# GET variants (backwards compat)
 @app.get("/entities/{project_id}")
 async def list_entities(project_id: str):
     """List recent entities in the project's knowledge graph."""
     try:
-        graphiti = await _get_graphiti(project_id)
-
-        # Retrieve entities via the graph driver
-        entities: list[dict[str, Any]] = []
-        try:
-            result = await graphiti.get_nodes()
-            for node in result:
-                entities.append(
-                    {
-                        "name": getattr(node, "name", str(node)),
-                        "summary": getattr(node, "summary", ""),
-                        "created_at": _format_dt(getattr(node, "created_at", None)),
-                    }
-                )
-        except Exception as inner_exc:
-            logger.warning("Could not retrieve entities: %s", inner_exc)
-
-        return {"entities": entities}
-
+        return await _list_entities_impl(project_id)
     except Exception as exc:
         logger.error("Failed to list entities: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail=str(exc))
@@ -352,25 +442,7 @@ async def list_entities(project_id: str):
 async def list_relationships(project_id: str):
     """List relationships (edges/facts) in the project's knowledge graph."""
     try:
-        graphiti = await _get_graphiti(project_id)
-
-        relationships: list[dict[str, Any]] = []
-        try:
-            result = await graphiti.get_edges()
-            for edge in result:
-                relationships.append(
-                    {
-                        "source": getattr(edge, "source_node_name", ""),
-                        "target": getattr(edge, "target_node_name", ""),
-                        "fact": getattr(edge, "fact", str(edge)),
-                        "valid_at": _format_dt(getattr(edge, "valid_at", None)),
-                    }
-                )
-        except Exception as inner_exc:
-            logger.warning("Could not retrieve relationships: %s", inner_exc)
-
-        return {"relationships": relationships}
-
+        return await _list_relationships_impl(project_id)
     except Exception as exc:
         logger.error("Failed to list relationships: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail=str(exc))
@@ -380,36 +452,7 @@ async def list_relationships(project_id: str):
 async def timeline(project_id: str, limit: int = Query(default=20, ge=1, le=100)):
     """Return recent episodes (timeline) for the project."""
     try:
-        graphiti = await _get_graphiti(project_id)
-
-        episodes: list[dict[str, Any]] = []
-        try:
-            result = await graphiti.get_episodes(limit=limit)
-            for ep in result:
-                entities_list: list[str] = []
-                # Episodes may reference entity names
-                if hasattr(ep, "entity_edges"):
-                    entities_list = [
-                        getattr(e, "name", str(e)) for e in ep.entity_edges
-                    ]
-                elif hasattr(ep, "entities"):
-                    entities_list = [
-                        getattr(e, "name", str(e)) for e in ep.entities
-                    ]
-
-                episodes.append(
-                    {
-                        "name": getattr(ep, "name", ""),
-                        "source_description": getattr(ep, "source_description", ""),
-                        "created_at": _format_dt(getattr(ep, "created_at", None)),
-                        "entities": entities_list,
-                    }
-                )
-        except Exception as inner_exc:
-            logger.warning("Could not retrieve timeline: %s", inner_exc)
-
-        return {"episodes": episodes}
-
+        return await _list_timeline_impl(project_id, limit)
     except Exception as exc:
         logger.error("Failed to get timeline: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail=str(exc))

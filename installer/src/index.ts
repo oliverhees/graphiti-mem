@@ -113,19 +113,38 @@ async function main() {
     p.log.success(`uv found at ${uvPath}`);
   }
 
-  // Step 3: VOYAGE_API_KEY check (NLP uses claude CLI, embeddings need Voyage AI)
-  if (!process.env.VOYAGE_API_KEY) {
+  // Step 3: VOYAGE_API_KEY — required for semantic search (embeddings)
+  // NLP extraction uses the claude CLI — no Anthropic API key needed.
+  let voyageKey = process.env.VOYAGE_API_KEY;
+
+  // Also check ~/.graphiti-mem/.env if already installed
+  const dotEnvPath = path.join(DATA_DIR, '.env');
+  if (!voyageKey && fs.existsSync(dotEnvPath)) {
+    const lines = fs.readFileSync(dotEnvPath, 'utf8').split('\n');
+    for (const line of lines) {
+      const m = line.match(/^VOYAGE_API_KEY=(.+)$/);
+      if (m) { voyageKey = m[1].trim().replace(/^["']|["']$/g, ''); break; }
+    }
+  }
+
+  if (!voyageKey) {
     p.log.warn('VOYAGE_API_KEY not set — needed for semantic search (embeddings)');
     p.log.info('Get a free key at: https://dash.voyageai.com/ (50M tokens/month free)');
-    p.log.info('Add to shell profile: export VOYAGE_API_KEY=pa-...');
-    p.log.info('Note: NLP extraction uses the claude CLI — no Anthropic API key needed.');
-    const proceed = await p.confirm({
-      message: 'Continue installation without VOYAGE_API_KEY? (set it before first use)',
-      initialValue: true,
+
+    const keyInput = await p.text({
+      message: 'Enter your VOYAGE_API_KEY (or leave blank to skip):',
+      placeholder: 'pa-...',
     });
-    if (p.isCancel(proceed) || !proceed) process.exit(0);
+
+    if (p.isCancel(keyInput)) process.exit(0);
+
+    if (keyInput && String(keyInput).trim()) {
+      voyageKey = String(keyInput).trim();
+    } else {
+      p.log.warn('Skipping — set VOYAGE_API_KEY before first use.');
+    }
   } else {
-    p.log.success('VOYAGE_API_KEY found');
+    p.log.success(`VOYAGE_API_KEY found (${voyageKey.slice(0, 6)}...)`);
   }
 
   // Step 4: Create venv and install dependencies
@@ -160,7 +179,23 @@ async function main() {
     },
   ]);
 
-  // Step 5: Copy Python worker scripts to data dir
+  // Step 5: Write ~/.graphiti-mem/.env with the API key
+  if (voyageKey) {
+    let envContent = '';
+    if (fs.existsSync(dotEnvPath)) {
+      // Preserve existing lines, update VOYAGE_API_KEY
+      envContent = fs.readFileSync(dotEnvPath, 'utf8')
+        .split('\n')
+        .filter(l => !l.startsWith('VOYAGE_API_KEY='))
+        .join('\n');
+      if (envContent && !envContent.endsWith('\n')) envContent += '\n';
+    }
+    envContent += `VOYAGE_API_KEY=${voyageKey}\n`;
+    fs.writeFileSync(dotEnvPath, envContent, 'utf8');
+    p.log.success(`VOYAGE_API_KEY saved to ${dotEnvPath}`);
+  }
+
+  // Step 6: Copy Python worker scripts to data dir
   const scriptsDir = path.resolve(__dirname, '..', '..', 'plugin', 'scripts');
   for (const script of ['worker-service.py', 'claude_code_llm_client.py']) {
     const src = path.join(scriptsDir, script);
