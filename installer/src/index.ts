@@ -113,18 +113,19 @@ async function main() {
     p.log.success(`uv found at ${uvPath}`);
   }
 
-  // Step 3: ANTHROPIC_API_KEY check
-  if (!process.env.ANTHROPIC_API_KEY) {
-    p.log.warn('ANTHROPIC_API_KEY not set — graphiti-mem uses Claude for NLP extraction');
-    p.log.info('Add to shell profile: export ANTHROPIC_API_KEY=sk-ant-...');
-    p.log.info('Get your key: https://console.anthropic.com/');
+  // Step 3: VOYAGE_API_KEY check (NLP uses claude CLI, embeddings need Voyage AI)
+  if (!process.env.VOYAGE_API_KEY) {
+    p.log.warn('VOYAGE_API_KEY not set — needed for semantic search (embeddings)');
+    p.log.info('Get a free key at: https://dash.voyageai.com/ (50M tokens/month free)');
+    p.log.info('Add to shell profile: export VOYAGE_API_KEY=pa-...');
+    p.log.info('Note: NLP extraction uses the claude CLI — no Anthropic API key needed.');
     const proceed = await p.confirm({
-      message: 'Continue installation without API key? (set it later)',
+      message: 'Continue installation without VOYAGE_API_KEY? (set it before first use)',
       initialValue: true,
     });
     if (p.isCancel(proceed) || !proceed) process.exit(0);
   } else {
-    p.log.success('ANTHROPIC_API_KEY found');
+    p.log.success('VOYAGE_API_KEY found');
   }
 
   // Step 4: Create venv and install dependencies
@@ -159,13 +160,15 @@ async function main() {
     },
   ]);
 
-  // Step 5: Copy worker service to data dir
-  const workerSrc = path.resolve(__dirname, '..', '..', 'plugin', 'scripts', 'worker-service.py');
-  const workerDest = path.join(DATA_DIR, 'worker-service.py');
-  if (fs.existsSync(workerSrc)) {
-    fs.copyFileSync(workerSrc, workerDest);
-    p.log.success('Worker service deployed to ~/.graphiti-mem/');
+  // Step 5: Copy Python worker scripts to data dir
+  const scriptsDir = path.resolve(__dirname, '..', '..', 'plugin', 'scripts');
+  for (const script of ['worker-service.py', 'claude_code_llm_client.py']) {
+    const src = path.join(scriptsDir, script);
+    if (fs.existsSync(src)) {
+      fs.copyFileSync(src, path.join(DATA_DIR, script));
+    }
   }
+  p.log.success('Worker scripts deployed to ~/.graphiti-mem/');
 
   p.outro(
     pc.green('✓ graphiti-mem installed!\n\n') +

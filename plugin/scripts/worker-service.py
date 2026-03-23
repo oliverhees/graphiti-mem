@@ -21,9 +21,14 @@ from pydantic import BaseModel, Field
 
 from graphiti_core import Graphiti
 from graphiti_core.driver.kuzu_driver import KuzuDriver
-from graphiti_core.llm_client.anthropic_client import AnthropicClient
 from graphiti_core.llm_client import LLMConfig
 from graphiti_core.embedder.voyage import VoyageAIEmbedder, VoyageAIEmbedderConfig
+
+# ClaudeCodeLLMClient lives next to this file
+import sys as _sys
+import pathlib as _pathlib
+_sys.path.insert(0, str(_pathlib.Path(__file__).parent))
+from claude_code_llm_client import ClaudeCodeLLMClient
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -66,12 +71,13 @@ def _db_path(project_id: str) -> Path:
     return db_dir
 
 
-def _build_llm_client() -> AnthropicClient:
-    """Create the Anthropic LLM client used by Graphiti for entity/relationship extraction."""
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        raise RuntimeError("ANTHROPIC_API_KEY environment variable is required")
-    return AnthropicClient(config=LLMConfig(api_key=api_key))
+def _build_llm_client() -> ClaudeCodeLLMClient:
+    """Create the LLM client for Graphiti entity/relationship extraction.
+
+    Uses ClaudeCodeLLMClient which proxies through the `claude` CLI —
+    no ANTHROPIC_API_KEY needed, reuses Claude Code's existing authentication.
+    """
+    return ClaudeCodeLLMClient(config=LLMConfig())
 
 
 def _build_embedder() -> VoyageAIEmbedder:
@@ -504,6 +510,26 @@ async def handle_compact(req: CompactRequest):
     except Exception as exc:
         logger.error("Compact handling failed: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+class SessionRequest(BaseModel):
+    project_id: str
+    project_name: str
+    action: str = "init"          # "init" or "complete"
+    cwd: str = ""
+    completed_at: str = ""
+
+
+@app.post("/session")
+async def handle_session(req: SessionRequest):
+    """Track session lifecycle (init / complete). Lightweight — no graph writes."""
+    logger.info(
+        "Session %s for project %s (%s)",
+        req.action,
+        req.project_name,
+        req.project_id,
+    )
+    return {"status": "ok", "action": req.action, "project_id": req.project_id}
 
 
 @app.post("/shutdown")
