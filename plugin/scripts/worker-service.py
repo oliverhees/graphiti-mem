@@ -65,10 +65,15 @@ def project_id_from_path(project_path: str) -> str:
 
 
 def _db_path(project_id: str) -> Path:
-    """Return the Kuzu database directory for a given project_id."""
-    db_dir = BASE_DIR / "projects" / project_id
-    db_dir.mkdir(parents=True, exist_ok=True)
-    return db_dir
+    """Return the Kuzu database file path for a given project_id.
+
+    Kuzu requires a file path, not a pre-existing directory.
+    The parent directory is created; Kuzu itself creates the db file.
+    """
+    project_dir = BASE_DIR / "projects"
+    project_dir.mkdir(parents=True, exist_ok=True)
+    # Return path to the db file (Kuzu creates it on first open)
+    return project_dir / f"{project_id}.kuzu"
 
 
 def _build_llm_client() -> ClaudeCodeLLMClient:
