@@ -365,19 +365,38 @@ async def _list_relationships_impl(project_id: str) -> dict[str, Any]:
     graphiti = await _get_graphiti(project_id)
     relationships: list[dict[str, Any]] = []
     try:
-        # Direct Kuzu query — EntityEdge is the relationship table in Graphiti's Kuzu schema
-        records, _, _ = await graphiti.driver.execute_query(
-            "MATCH (n:Entity)-[r:EntityEdge]->(m:Entity) "
-            "RETURN n.name AS source, m.name AS target, r.fact AS fact, r.valid_at AS valid_at "
-            "LIMIT 50"
+        # Discover actual edge table names in this Kuzu DB, then query them
+        tables, _, _ = await graphiti.driver.execute_query(
+            "CALL show_tables() RETURN name, type"
         )
-        for rec in records:
-            relationships.append({
-                "source": rec.get("source", ""),
-                "target": rec.get("target", ""),
-                "fact": rec.get("fact", ""),
-                "valid_at": _format_dt(rec.get("valid_at")),
-            })
+        edge_tables = [
+            t.get("name") for t in tables
+            if str(t.get("type", "")).upper() == "REL"
+        ]
+        logger.debug("Edge tables in Kuzu: %s", edge_tables)
+
+        # Graphiti Kuzu workaround: facts are on an intermediate RelatesToNode_
+        # Pattern: (n:Entity)-[:RELATES_TO]->(e:RelatesToNode_)-[:RELATES_TO]->(m:Entity)
+        try:
+            records, _, _ = await graphiti.driver.execute_query(
+                "MATCH (n:Entity)-[:RELATES_TO]->(e:RelatesToNode_)-[:RELATES_TO]->(m:Entity) "
+                "RETURN n.name AS source, m.name AS target, "
+                "       e.fact AS fact, e.valid_at AS valid_at "
+                "ORDER BY e.created_at DESC "
+                "LIMIT 50"
+            )
+            for rec in records:
+                fact = rec.get("fact", "")
+                if not fact:
+                    continue
+                relationships.append({
+                    "source": rec.get("source", ""),
+                    "target": rec.get("target", ""),
+                    "fact": fact,
+                    "valid_at": _format_dt(rec.get("valid_at")),
+                })
+        except Exception as exc:
+            logger.debug("RelatesToNode_ query failed: %s", exc)
     except Exception as exc:
         logger.warning("Could not retrieve relationships: %s", exc)
     return {"relationships": relationships}
@@ -388,14 +407,17 @@ async def _list_timeline_impl(project_id: str, limit: int = 20) -> dict[str, Any
     graphiti = await _get_graphiti(project_id)
     episodes: list[dict[str, Any]] = []
     try:
-        # retrieve_episodes() is the correct Graphiti API (last_n most recent episodes)
-        result = await graphiti.retrieve_episodes(last_n=limit)
+        # retrieve_episodes() requires reference_time as positional arg
+        result = await graphiti.retrieve_episodes(
+            last_n=limit,
+            reference_time=datetime.now(timezone.utc),
+        )
         for ep in result:
             episodes.append({
                 "name": getattr(ep, "name", ""),
                 "source_description": getattr(ep, "source_description", ""),
                 "created_at": _format_dt(getattr(ep, "created_at", None)),
-                "entities": [],  # EpisodicNode doesn't carry pre-resolved entities
+                "entities": [],
             })
     except Exception as exc:
         logger.warning("Could not retrieve timeline: %s", exc)
