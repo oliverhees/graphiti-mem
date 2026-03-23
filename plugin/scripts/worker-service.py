@@ -28,7 +28,7 @@ from graphiti_core.embedder.voyage import VoyageAIEmbedder, VoyageAIEmbedderConf
 import sys as _sys
 import pathlib as _pathlib
 _sys.path.insert(0, str(_pathlib.Path(__file__).parent))
-from claude_code_llm_client import ClaudeCodeLLMClient
+from claude_code_llm_client import ClaudeCodeLLMClient, NullCrossEncoder
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -103,6 +103,28 @@ def _build_embedder() -> VoyageAIEmbedder:
     return VoyageAIEmbedder(config=VoyageAIEmbedderConfig(api_key=api_key))
 
 
+def _build_kuzu_fts_indices(kuzu_driver: KuzuDriver) -> None:
+    """Create Kuzu FTS indices required by Graphiti's search queries.
+
+    KuzuDriver.build_indices_and_constraints() is a no-op in the installed version.
+    We call the exact queries from graphiti_core.graph_queries to stay in sync.
+    Safe to call multiple times — errors for existing indices are silently skipped.
+    """
+    import kuzu as _kuzu
+    from graphiti_core.graph_queries import get_fulltext_indices as get_index_queries
+    from graphiti_core.driver.driver import GraphProvider
+
+    queries = get_index_queries(GraphProvider.KUZU)
+    conn = _kuzu.Connection(kuzu_driver.db)
+    for query in queries:
+        try:
+            conn.execute(query)
+            logger.debug("FTS index created: %s", query[:60])
+        except Exception as exc:
+            logger.debug("FTS index skipped (likely exists): %s", exc)
+    conn.close()
+
+
 async def _get_graphiti(project_id: str) -> Graphiti:
     """Return a cached Graphiti instance for the project, creating one if needed."""
     if project_id in _graphiti_cache:
@@ -119,16 +141,15 @@ async def _get_graphiti(project_id: str) -> Graphiti:
         graph_driver=kuzu_driver,
         llm_client=llm_client,
         embedder=embedder,
+        cross_encoder=NullCrossEncoder(),  # Avoid OpenAI dependency — Voyage embeddings rank results
     )
 
-    # Build indices and constraints on first access
+    # Build FTS indices on first access.
+    # KuzuDriver.build_indices_and_constraints() is a no-op — we create FTS indices manually.
     if project_id not in _initialized_projects:
-        try:
-            await graphiti.build_indices_and_constraints()
-            _initialized_projects.add(project_id)
-            logger.info("Indices and constraints built for project %s", project_id)
-        except Exception as exc:
-            logger.warning("Could not build indices for project %s: %s", project_id, exc)
+        _build_kuzu_fts_indices(kuzu_driver)
+        _initialized_projects.add(project_id)
+        logger.info("FTS indices built for project %s", project_id)
 
     _graphiti_cache[project_id] = graphiti
     return graphiti

@@ -21,6 +21,7 @@ from typing import Any
 
 from pydantic import BaseModel
 from graphiti_core.llm_client.client import LLMClient, LLMConfig, ModelSize, Message
+from graphiti_core.cross_encoder.client import CrossEncoderClient
 
 logger = logging.getLogger(__name__)
 
@@ -92,9 +93,9 @@ async def _run_claude_cli(prompt: str, system: str = _SYSTEM_PROMPT) -> str:
 
     cmd = [
         claude_path,
-        "--print",                    # non-interactive / one-shot mode
-        "--output-format", "text",    # plain text output
-        "--system", system,
+        "--print",                           # non-interactive / one-shot mode
+        "--output-format", "text",           # plain text output
+        "--append-system-prompt", system,    # inject JSON extraction instructions
         prompt,
     ]
 
@@ -147,6 +148,17 @@ def _extract_json(text: str) -> dict[str, Any]:
         # Return as plain text wrapped in dict if all else fails
         logger.warning("Could not parse JSON from claude CLI response, wrapping as text")
         return {"content": cleaned}
+
+
+class NullCrossEncoder(CrossEncoderClient):
+    """No-op cross-encoder — returns passages with uniform scores.
+
+    Avoids the OpenAI dependency that Graphiti's default reranker requires.
+    Search results are returned in their original embedding-similarity order.
+    """
+
+    async def rank(self, query: str, passages: list[str]) -> list[tuple[str, float]]:
+        return [(p, 1.0) for p in passages]
 
 
 class ClaudeCodeLLMClient(LLMClient):
